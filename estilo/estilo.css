@@ -228,7 +228,7 @@ h1, h2, h3, h4 {
     content: '';
     position: absolute;
     inset: 0;
-    background-image: url('https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=1600');
+    background-image: var(--foto-hero, none);
     background-size: cover;
     background-position: center;
     opacity: 0.35;
@@ -918,4 +918,79 @@ h1, h2, h3, h4 {
 
 .animated-card {
     opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------- */
+/* PLANTILLA DINAMICA: estados de carga/error, logo de texto, redes en el cierre */
+/* ---------------------------------------------------------------------------- */
+
+.estado-pantalla {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: var(--color-white);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+    padding: 24px;
+}
+
+.estado-pantalla h2 {
+    color: var(--color-secondary);
+    font-size: 1.4rem;
+}
+
+.estado-pantalla p {
+    color: var(--color-text-secondary);
+    max-width: 40ch;
+}
+
+.spinner-carga {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 4px solid #f1f1f1;
+    border-top-color: var(--color-primary);
+    animation: girar 0.8s linear infinite;
+}
+
+@keyframes girar {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.volver-guia-btn {
+    background: var(--color-primary);
+    color: var(--color-white);
+    padding: 12px 24px;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.footer-logo-texto {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--color-white);
+    margin-bottom: 10px;
+}
+
+.contact-btn-secundario {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: none;
+    margin: 0 10px;
+}
+
+.gallery-item-vacio,
+.gallery-vacia-aviso {
+    color: var(--color-text-secondary);
 }
