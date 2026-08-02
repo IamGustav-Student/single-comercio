@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" width="260" height="60">
+  <defs>
+    <linearGradient id="pdjGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e11d48"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <circle cx="30" cy="30" r="28" fill="url(#pdjGrad)"/>
+  <path d="M30 14c3 4 5 7 5 11a5 5 0 0 1-10 0c0-4 2-7 5-11z" fill="#fff8e8"/>
+  <path d="M18 30c3 3 5 6 5 10a4.5 4.5 0 1 1-9 0c0-4 1-7 4-10z" fill="#fff8e8"/>
+  <path d="M42 30c3 3 5 6 5 10a4.5 4.5 0 1 1-9 0c0-4 1-7 4-10z" fill="#fff8e8"/>
+  <text x="68" y="28" font-family="Poppins, sans-serif" font-size="19" font-weight="700" fill="#1e272e">Panadería</text>
+  <text x="68" y="48" font-family="Poppins, sans-serif" font-size="19" font-weight="700" fill="#e11d48">Don Juan</text>
+</svg>
