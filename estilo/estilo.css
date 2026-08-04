@@ -972,6 +972,12 @@ h1, h2, h3, h4 {
     font-weight: 700;
 }
 
+.volver-guia-link-secundario {
+    color: var(--color-text-secondary);
+    text-decoration: underline;
+    font-size: 0.85rem;
+}
+
 .footer-logo-texto {
     display: block;
     font-size: 1.3rem;

@@ -24,6 +24,12 @@ function mostrarError() {
   document.getElementById('estado-error').style.display = 'flex';
 }
 
+function mostrarRestringido(c) {
+  document.getElementById('estado-carga').style.display = 'none';
+  document.getElementById('restringido-nombre').textContent = c.nombre_negocio;
+  document.getElementById('estado-restringido').style.display = 'flex';
+}
+
 function ocultarCarga() {
   document.getElementById('estado-carga').style.display = 'none';
   if (typeof ScrollTrigger !== 'undefined') {
@@ -160,6 +166,10 @@ function poblarFicha(c) {
   }
   try {
     const comercio = await fetchComercio(id);
+    if (comercio.acceso_restringido) {
+      mostrarRestringido(comercio);
+      return;
+    }
     poblarFicha(comercio);
     ocultarCarga();
   } catch (e) {
