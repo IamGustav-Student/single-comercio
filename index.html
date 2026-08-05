@@ -30,7 +30,30 @@
         <h2>Ficha exclusiva del Plan Premium</h2>
         <p>La ficha completa de <strong id="restringido-nombre"></strong> está disponible solo para comercios con Plan Premium (mensual o anual).</p>
         <a href="https://comerciantes-web-mvp.vercel.app/suscripciones.html" class="volver-guia-btn" target="_blank">Conocer el Plan Premium</a>
+        <button type="button" id="btn-reclamar-perfil" class="reclamar-perfil-btn">¿Sos el dueño de este comercio? Reclamá tu perfil</button>
         <a href="https://comerciantes-psi.vercel.app" class="volver-guia-link-secundario">Volver a la guía</a>
+    </div>
+
+    <!-- MODAL: RECLAMÁ TU PERFIL (sección 5.1 del plan - el gancho principal de conversión a Premium) -->
+    <div id="modal-reclamar-perfil" class="modal-reclamar" style="display:none;">
+        <div class="modal-reclamar-content">
+            <button type="button" class="modal-reclamar-cerrar" id="cerrar-modal-reclamar" aria-label="Cerrar">✕</button>
+            <h3>Reclamá tu perfil</h3>
+            <p>Contanos quién sos y el equipo de comerciantes.com.ar te contacta para activar tu WhatsApp, mapa y catálogo.</p>
+            <form id="form-reclamar-perfil">
+                <label for="reclamar-nombre">Tu nombre</label>
+                <input type="text" id="reclamar-nombre" required>
+                <label for="reclamar-telefono">Teléfono</label>
+                <input type="tel" id="reclamar-telefono">
+                <label for="reclamar-email">Email</label>
+                <input type="email" id="reclamar-email">
+                <label for="reclamar-mensaje">Mensaje (opcional)</label>
+                <textarea id="reclamar-mensaje" rows="3"></textarea>
+                <p id="reclamar-error" class="reclamar-error" style="display:none;"></p>
+                <button type="submit" class="reclamar-perfil-btn">Enviar reclamo</button>
+            </form>
+            <p id="reclamar-exito" style="display:none;">¡Listo! Te vamos a contactar a la brevedad.</p>
+        </div>
     </div>
 
     <!-- ---------------------------------------------------------------------------- -->
@@ -75,6 +98,7 @@
             <span class="hero-eyebrow" id="hero-eyebrow">Categoría · Colón, Buenos Aires</span>
             <h1 class="hero-title" id="hero-titulo">Nombre del comercio</h1>
             <span class="hero-slogan" id="hero-slogan">Cargando información del comercio...</span>
+            <span class="badge-abierto" id="badge-abierto" style="display:none;"></span>
         </article>
     </header>
 
@@ -82,6 +106,19 @@
         style="display:none;">
         <i class="fa fa-whatsapp"></i>
     </a>
+
+    <!-- Sticky CTA Bar (mobile) - sección 3.A del plan: WhatsApp con mensaje precargado, Llamar y Cómo Llegar -->
+    <nav class="sticky-cta-bar" id="sticky-cta-bar" style="display:none;">
+        <a href="#" id="sticky-cta-whatsapp" target="_blank" class="sticky-cta-item sticky-cta-whatsapp">
+            <i class="fa fa-whatsapp"></i><span>WhatsApp</span>
+        </a>
+        <a href="#" id="sticky-cta-llamar" class="sticky-cta-item sticky-cta-llamar">
+            <i class="fa fa-phone"></i><span>Llamar</span>
+        </a>
+        <a href="#" id="sticky-cta-como-llegar" target="_blank" class="sticky-cta-item sticky-cta-llegar">
+            <i class="fa fa-location-arrow"></i><span>Cómo llegar</span>
+        </a>
+    </nav>
 
     <!-- ---------------------------------------------------------------------------- -->
     <!-- SECCION 2: PRESENTACION -->
@@ -155,6 +192,35 @@
             </header>
 
             <div class="gallery-grid" id="gallery-grid"></div>
+        </div>
+    </section>
+
+    <!-- ---------------------------------------------------------------------------- -->
+    <!-- SECCION 7.1: SHOWCASE DE PRODUCTOS/SERVICIOS (sección 3.C del plan, solo Premium) -->
+    <!-- ---------------------------------------------------------------------------- -->
+
+    <section class="section-container" id="productos-section" style="display:none;">
+        <div class="content-wrapper">
+            <header class="card-header">
+                <h2 class="section-title">PRODUCTOS Y SERVICIOS</h2>
+                <p class="section-lead">Algunos de nuestros destacados.</p>
+            </header>
+
+            <div class="productos-grid" id="productos-grid"></div>
+        </div>
+    </section>
+
+    <!-- ---------------------------------------------------------------------------- -->
+    <!-- SECCION 7.2: TESTIMONIOS (sección 3.D del plan) -->
+    <!-- ---------------------------------------------------------------------------- -->
+
+    <section class="section-container testimonios-section" id="testimonios-section" style="display:none;">
+        <div class="content-wrapper">
+            <header class="card-header">
+                <h2 class="section-title">LO QUE DICEN NUESTROS CLIENTES</h2>
+            </header>
+
+            <div class="testimonios-grid" id="testimonios-grid"></div>
         </div>
     </section>
 

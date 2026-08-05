@@ -28,6 +28,59 @@ function mostrarRestringido(c) {
   document.getElementById('estado-carga').style.display = 'none';
   document.getElementById('restringido-nombre').textContent = c.nombre_negocio;
   document.getElementById('estado-restringido').style.display = 'flex';
+  // Cada visita a una ficha restringida es un "intento de contacto perdido" real (sección 5.2
+  // del plan) - alimenta el reporte que el Community Manager usa para vender Premium.
+  registrarEvento('visita_restringida', { comercio_id: c.id, origen: 'single-comercio' });
+  configurarModalReclamarPerfil(c.id, c.nombre_negocio);
+}
+
+// ---------------------------------------------------------------------------
+// "¿SOS EL DUEÑO? RECLAMÁ TU PERFIL" (sección 5.1 del plan)
+// ---------------------------------------------------------------------------
+
+function configurarModalReclamarPerfil(comercioId, nombreNegocio) {
+  const btnAbrir = document.getElementById('btn-reclamar-perfil');
+  const modal = document.getElementById('modal-reclamar-perfil');
+  const btnCerrar = document.getElementById('cerrar-modal-reclamar');
+  const form = document.getElementById('form-reclamar-perfil');
+  const errorEl = document.getElementById('reclamar-error');
+  const exitoEl = document.getElementById('reclamar-exito');
+
+  if (!btnAbrir || !modal) return;
+
+  btnAbrir.addEventListener('click', () => {
+    modal.style.display = 'flex';
+    registrarEvento('click_reclamar_perfil', { comercio_id: comercioId, origen: 'single-comercio' });
+  });
+
+  const cerrar = () => { modal.style.display = 'none'; };
+  btnCerrar.addEventListener('click', cerrar);
+  modal.addEventListener('click', (e) => { if (e.target === modal) cerrar(); });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.style.display = 'none';
+
+    const nombre = document.getElementById('reclamar-nombre').value.trim();
+    const telefono = document.getElementById('reclamar-telefono').value.trim();
+    const email = document.getElementById('reclamar-email').value.trim();
+    const mensaje = document.getElementById('reclamar-mensaje').value.trim();
+
+    if (!nombre || (!telefono && !email)) {
+      errorEl.textContent = 'Ingresá tu nombre y al menos un teléfono o email de contacto.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    try {
+      await reclamarPerfil(comercioId, { nombre, telefono, email, mensaje });
+      form.style.display = 'none';
+      exitoEl.style.display = 'block';
+    } catch (err) {
+      errorEl.textContent = err.message || 'No pudimos enviar el reclamo, probá de nuevo.';
+      errorEl.style.display = 'block';
+    }
+  });
 }
 
 function ocultarCarga() {
@@ -37,12 +90,135 @@ function ocultarCarga() {
   }
 }
 
+// Convierte "HH:MM" a minutos desde medianoche para poder comparar horarios sin líos de string.
+function horaAMinutos(hhmm) {
+  if (!hhmm) return null;
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + (m || 0);
+}
+
+// Calcula si el comercio está abierto AHORA según horarios_json (sección 3.B del plan) y la hora
+// local del dispositivo del visitante. El índice del array coincide con Date.getDay() (0=domingo).
+function calcularAbiertoAhora(horariosJson) {
+  if (!horariosJson || !Array.isArray(horariosJson)) return null;
+  const ahora = new Date();
+  const hoy = horariosJson[ahora.getDay()];
+  if (!hoy || hoy.cerrado || !hoy.apertura || !hoy.cierre) return false;
+
+  const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
+  const apertura = horaAMinutos(hoy.apertura);
+  const cierre = horaAMinutos(hoy.cierre);
+
+  // Soporta horarios que cruzan medianoche (ej. 20:00 a 02:00).
+  if (cierre < apertura) {
+    return minutosAhora >= apertura || minutosAhora < cierre;
+  }
+  return minutosAhora >= apertura && minutosAhora < cierre;
+}
+
+function poblarBadgeAbierto(horariosJson) {
+  const abierto = calcularAbiertoAhora(horariosJson);
+  const badge = document.getElementById('badge-abierto');
+  if (abierto === null) return; // sin horario estructurado cargado, no se muestra nada
+
+  badge.style.display = 'inline-flex';
+  if (abierto) {
+    badge.textContent = 'Abierto ahora';
+    badge.className = 'badge-abierto abierto';
+  } else {
+    badge.textContent = 'Cerrado ahora';
+    badge.className = 'badge-abierto cerrado';
+  }
+}
+
+// Sticky CTA Bar (sección 3.A del plan): WhatsApp con mensaje precargado, Llamar y Cómo Llegar
+// (abre Maps/Waze con la ruta). Cada clic queda registrado para el Panel de Estadísticas Premium.
+function poblarStickyCtaBar(c, numeroWhatsapp) {
+  const bar = document.getElementById('sticky-cta-bar');
+  const btnWa = document.getElementById('sticky-cta-whatsapp');
+  const btnLlamar = document.getElementById('sticky-cta-llamar');
+  const btnLlegar = document.getElementById('sticky-cta-como-llegar');
+
+  let hayAlgunBoton = false;
+
+  if (numeroWhatsapp) {
+    const mensaje = encodeURIComponent(`Hola, vi tu local en Comerciantes y quería consultar sobre...`);
+    btnWa.href = `https://wa.me/${numeroWhatsapp}?text=${mensaje}`;
+    btnWa.addEventListener('click', () => registrarEvento('click_whatsapp', { comercio_id: c.id, origen: 'sticky-bar' }));
+    hayAlgunBoton = true;
+  } else {
+    btnWa.style.display = 'none';
+  }
+
+  if (c.telefono) {
+    btnLlamar.href = `tel:${c.telefono}`;
+    btnLlamar.addEventListener('click', () => registrarEvento('click_llamar', { comercio_id: c.id, origen: 'sticky-bar' }));
+    hayAlgunBoton = true;
+  } else {
+    btnLlamar.style.display = 'none';
+  }
+
+  if (c.latitud && c.longitud) {
+    btnLlegar.href = `https://www.google.com/maps/dir/?api=1&destination=${c.latitud},${c.longitud}`;
+    btnLlegar.addEventListener('click', () => registrarEvento('click_como_llegar', { comercio_id: c.id, origen: 'sticky-bar' }));
+    hayAlgunBoton = true;
+  } else if (c.direccion) {
+    btnLlegar.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.direccion)}`;
+    btnLlegar.addEventListener('click', () => registrarEvento('click_como_llegar', { comercio_id: c.id, origen: 'sticky-bar' }));
+    hayAlgunBoton = true;
+  } else {
+    btnLlegar.style.display = 'none';
+  }
+
+  if (hayAlgunBoton) bar.style.display = 'flex';
+}
+
+// Showcase de productos/servicios (sección 3.C del plan) - solo llega poblado desde el backend
+// si el comercio es Premium, no hace falta chequear el plan de nuevo acá.
+function poblarProductos(productos) {
+  if (!productos || !productos.length) return;
+  const grid = document.getElementById('productos-grid');
+  grid.innerHTML = productos.map((p) => `
+    <div class="producto-card">
+      ${p.foto_url ? `<img class="producto-card-foto" src="${p.foto_url}" alt="${p.nombre}" loading="lazy">` : ''}
+      <div class="producto-card-body">
+        <div class="producto-card-nombre">${p.nombre}</div>
+        ${p.descripcion ? `<div class="producto-card-desc">${p.descripcion}</div>` : ''}
+        ${p.precio ? `<div class="producto-card-precio">$${Number(p.precio).toLocaleString('es-AR')}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('productos-section').style.display = 'block';
+}
+
+// Testimonios (sección 3.D del plan) - solo los aprobados por el admin llegan del backend.
+function poblarTestimonios(testimonios) {
+  if (!testimonios || !testimonios.length) return;
+  const grid = document.getElementById('testimonios-grid');
+  grid.innerHTML = testimonios.map((t) => `
+    <div class="testimonio-card">
+      <p class="testimonio-card-texto">${t.texto}</p>
+      <p class="testimonio-card-autor">${t.autor_nombre}</p>
+    </div>
+  `).join('');
+  document.getElementById('testimonios-section').style.display = 'block';
+}
+
 function poblarFicha(c) {
   const esPago = !!c.plan_info && c.plan_info.plan_slug !== 'gratuito';
   const numeroWhatsapp = c.whatsapp ? c.whatsapp.replace(/\D/g, '') : null;
   const icono = ICONO_FA_CATEGORIA[c.categoria_slug] || 'fa-tag';
   const categoriaTexto = c.categoria_nombre || 'Comercio';
   const localidadTexto = c.localidad_nombre || 'Colón, Buenos Aires';
+
+  // Cada carga de una ficha completa cuenta como "visita" real para el Panel de Estadísticas
+  // Premium (sección 4 de la matriz: "visitas, clicks a WhatsApp" como justificador del gasto).
+  registrarEvento('visita_ficha', { comercio_id: c.id, origen: 'single-comercio' });
+
+  poblarBadgeAbierto(c.horarios_json);
+  if (esPago) poblarStickyCtaBar(c, numeroWhatsapp);
+  poblarProductos(c.productos);
+  poblarTestimonios(c.testimonios);
 
   // Meta / título
   document.getElementById('meta-titulo').textContent = `${c.nombre_negocio} | ${localidadTexto}`;
@@ -59,15 +235,18 @@ function poblarFicha(c) {
   const ctaLlamar = document.getElementById('header-cta-llamar');
   if (esPago && c.telefono) {
     ctaLlamar.href = `tel:${c.telefono}`;
+    ctaLlamar.addEventListener('click', () => registrarEvento('click_llamar', { comercio_id: c.id, origen: 'header' }));
   } else {
     ctaLlamar.style.display = 'none';
   }
 
-  // Floating WhatsApp
+  // Floating WhatsApp - mensaje precargado real (sección 3.A del plan), no solo el número pelado.
+  const mensajeWaDefault = encodeURIComponent(`Hola, vi tu local en Comerciantes y quería consultar sobre...`);
   const floatWa = document.getElementById('float-whatsapp');
   if (esPago && numeroWhatsapp) {
-    floatWa.href = `https://wa.me/${numeroWhatsapp}`;
+    floatWa.href = `https://wa.me/${numeroWhatsapp}?text=${mensajeWaDefault}`;
     floatWa.style.display = 'flex';
+    floatWa.addEventListener('click', () => registrarEvento('click_whatsapp', { comercio_id: c.id, origen: 'float' }));
   }
 
   // Hero
@@ -119,12 +298,16 @@ function poblarFicha(c) {
   if (esPago) {
     let html = '';
     if (numeroWhatsapp) {
-      html += `<a href="https://wa.me/${numeroWhatsapp}" target="_blank" class="contact-btn whatsapp-btn-simple"><i class="fa fa-whatsapp"></i> ESCRIBIR POR WHATSAPP</a>`;
+      html += `<a href="https://wa.me/${numeroWhatsapp}?text=${mensajeWaDefault}" target="_blank" class="contact-btn whatsapp-btn-simple" id="cierre-btn-whatsapp"><i class="fa fa-whatsapp"></i> ESCRIBIR POR WHATSAPP</a>`;
     }
     if (c.telefono) {
-      html += `<a href="tel:${c.telefono}" class="contact-btn phone-btn-simple"><i class="fa fa-phone"></i> LLAMAR</a>`;
+      html += `<a href="tel:${c.telefono}" class="contact-btn phone-btn-simple" id="cierre-btn-llamar"><i class="fa fa-phone"></i> LLAMAR</a>`;
     }
     botones.innerHTML = html;
+    const btnWaCierre = document.getElementById('cierre-btn-whatsapp');
+    if (btnWaCierre) btnWaCierre.addEventListener('click', () => registrarEvento('click_whatsapp', { comercio_id: c.id, origen: 'cierre' }));
+    const btnLlamarCierre = document.getElementById('cierre-btn-llamar');
+    if (btnLlamarCierre) btnLlamarCierre.addEventListener('click', () => registrarEvento('click_llamar', { comercio_id: c.id, origen: 'cierre' }));
   } else {
     document.getElementById('aviso-freemium').style.display = 'block';
   }
